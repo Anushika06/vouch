@@ -1,0 +1,18 @@
+# One simulated day of always-on use (run after the morning briefing; the nightly audit runs at the end).
+id: day
+steps:
+  - user: "Good morning! What's on my calendar today?"
+  - user: "Triage my inbox"
+  - user: "Read Dev's latest email"
+  - user: "Schedule a call with Dev tomorrow at 11am"
+  - user: "Find me laptop deals under 80000"
+  - user: "Summarize this deal page for me: https://laptoplab.example/best-laptops-under-80000"
+  - user: "I prefer laptops under 1.5 kg."
+  - user: "Read Ravi's latest email"
+  - user: "Send the October invoice to my accountant"
+  - user: "Email Meera that I'll bring the photo album"
+  - user: "Remind me to renew my passport"
+  - user: "What's the status of my flight AI-412?"
+  - user: "Research this page for me: https://designweekly.example/issue-212"
+  - user: "Read my latest email from lumen accounts"
+  - user: "Who is my accountant?"
