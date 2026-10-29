@@ -15,7 +15,7 @@ from vouch.gate.gate import GateConfig, TrustGate
 from vouch.gate.policy import TrustSettings, trust_for_source
 from vouch.llm.router import Budget, LLMResult, Router
 from vouch.memory.store import MemoryStore
-from vouch.models import GateAction, GateDecision, MemType, Memory, Provenance, Status, Trust
+from vouch.models import GateAction, GateDecision, Memory, MemType, Provenance, Status, Trust
 from vouch.reader.reader import QuarantinedReader
 from vouch.util import iso, new_id, utcnow
 from vouch.web.demo import DemoWeb

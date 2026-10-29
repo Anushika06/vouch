@@ -14,7 +14,7 @@ from cryptography.fernet import Fernet
 from vouch.db import DB
 from vouch.llm.router import Budget, Router
 from vouch.memory.ledger import Ledger, mem_path
-from vouch.models import RECALLABLE, MemType, Memory, Status, Trust
+from vouch.models import RECALLABLE, Memory, MemType, Status, Trust
 from vouch.util import content_words, iso, parse_iso
 
 

@@ -388,6 +388,7 @@ _HANDLERS = {
     "audit.run": _audit,
     "briefing.compose": _briefing,
     "skill.review": _skill_review,
+    "lme.ingest": _writer,
     "lme.answer": _lme_answer,
     "lme.judge": _lme_judge,
     "inbox.draft": _draft,

@@ -12,7 +12,17 @@ from typing import Any
 from vouch.interpreter.interpreter import Interpreter, mem_lookup_for
 from vouch.interpreter.values import ValueStore
 from vouch.memory.writer import MemoryWriter, detector_candidates
-from vouch.models import RECALLABLE, GateAction, GateDecision, MemType, Memory, Provenance, Span, Status, Trust
+from vouch.models import (
+    RECALLABLE,
+    GateAction,
+    GateDecision,
+    Memory,
+    MemType,
+    Provenance,
+    Span,
+    Status,
+    Trust,
+)
 from vouch.tools.toolbox import Toolbox, TurnCtx, memory_view
 from vouch.util import iso, new_id
 from vouch.workspace import Workspace

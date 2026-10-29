@@ -13,6 +13,7 @@ import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 
+from dulwich.object_store import iter_tree_contents
 from dulwich.objects import Blob, Commit, Tree
 from dulwich.repo import Repo
 
@@ -119,7 +120,7 @@ class Ledger:
     def snapshot(self, sha: str) -> list[Memory]:
         commit = self.repo[sha.encode()]
         out: list[Memory] = []
-        for entry in self.repo.object_store.iter_tree_contents(commit.tree):
+        for entry in iter_tree_contents(self.repo.object_store, commit.tree):
             p = entry.path.decode()
             if p.startswith("memories/") and p.endswith(".json"):
                 out.append(Memory.model_validate_json(self.repo[entry.sha].data))

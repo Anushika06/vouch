@@ -1,0 +1,15 @@
+services:
+  vouch:
+    build: .
+    image: vouch:latest
+    env_file: .env
+    environment:
+      VOUCH_DATA_DIR: /data
+    ports:
+      - "7860:7860"
+    volumes:
+      - vouch-data:/data
+    restart: unless-stopped
+
+volumes:
+  vouch-data:

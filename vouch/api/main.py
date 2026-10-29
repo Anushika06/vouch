@@ -91,11 +91,14 @@ async def _llm(_req: Request, exc: Exception):
 
 # ------------------------------------------------------------------ session plumbing
 def sid_of(request: Request, response: Response) -> str:
+    import os
+
     sm = STATE["sessions"]
-    sid = request.headers.get("x-vouch-session") or request.cookies.get("vouch_sid")
+    hosted = get_settings().hosted
+    fixed = os.environ.get("VOUCH_LOCAL_SESSION") if not hosted else None
+    sid = fixed or request.headers.get("x-vouch-session") or request.cookies.get("vouch_sid")
     if not sm.valid(sid):
         sid = secrets.token_urlsafe(16)
-    hosted = get_settings().hosted
     response.set_cookie("vouch_sid", sid, max_age=60 * 60 * 24 * 7, httponly=True,
                         samesite="none" if hosted else "lax", secure=hosted)
     response.headers["x-vouch-session"] = sid
@@ -270,7 +273,11 @@ def approvals(ws: Workspace = Depends(ws_dep)):
             if cm:
                 conflicts[c] = _mem(cm)
     actions = ws.db.rows("SELECT * FROM pending_actions WHERE status='pending' ORDER BY created_at DESC")
-    return {"memories": [_mem(m) for m in pend], "disputed": [_mem(m) for m in disputed], "actions": actions,
+    from vouch.mcp_server.codes import approval_code
+
+    # The code lets the user approve from an MCP client (Hermes/OpenClaw) — it is only ever shown here.
+    mems = [_mem(m) | {"confirmation_code": approval_code(ws.root, m.id)} for m in pend]
+    return {"memories": mems, "disputed": [_mem(m) for m in disputed], "actions": actions,
             "sources": docs, "conflicts": conflicts}
 
 

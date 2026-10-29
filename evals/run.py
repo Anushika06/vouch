@@ -197,7 +197,7 @@ def aggregate(attacks: list[dict], benign: list[dict], runs: int, configs: list[
 
 
 def to_markdown(res: dict) -> str:
-    lines = [f"# Vouch eval results\n", f"Generated {res['generated_at']} by `python -m evals.run` "
+    lines = ["# Vouch eval results\n", f"Generated {res['generated_at']} by `python -m evals.run` "
              f"(provider: **{res['provider']}**, runs: {res['runs']}). Do not edit by hand.\n"]
     if res["provider"] == "mock":
         lines.append("> **MOCK RUN** — deterministic stand-in models. These numbers test the pipeline, not Nemotron.\n")
@@ -230,8 +230,8 @@ def to_markdown(res: dict) -> str:
         lines.append("\n## LongMemEval_s (utility)\n")
         lines.append("| Config | Accuracy | Questions |")
         lines.append("|---|---|---|")
-        for name, l in res["longmemeval"].items():
-            lines.append(f"| {name} | {100 * l['accuracy']:.1f}% | {l['n']} |")
+        for name, lm in res["longmemeval"].items():
+            lines.append(f"| {name} | {100 * lm['accuracy']:.1f}% | {lm['n']} |")
         lines.append("\nJudge: Nemotron 3 Super with an adapted LongMemEval judge prompt (the paper uses GPT-4o).")
     lines.append("\n## Unsuccessful defences (attack succeeded against vouch-full)\n")
     fails = [r for r in res["attacks"] if r["config"] == "vouch-full" and r.get("attack_succeeded")]
@@ -293,6 +293,7 @@ def main() -> None:
                       workers=args.workers)
 
     res = {"generated_at": iso(), "provider": settings.vouch_provider, "models": models, "runs": args.runs,
+           "provider_diagnostics": router.stats,
            "python": platform.python_version(), "configs": configs,
            "aggregate": aggregate(attacks, ben, args.runs, configs), "day": day, "longmemeval": lme,
            "attacks": [{k: v for k, v in r.items() if k != "trace"} for r in attacks],

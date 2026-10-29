@@ -177,6 +177,13 @@ class Router:
         if settings.vouch_prices_json:
             prices.update({k: tuple(v) for k, v in json.loads(settings.vouch_prices_json).items()})
         self.prices = prices
+        # Provider diagnostics (JSON repairs, structured-output fallbacks, retries) feed FEEDBACK.md.
+        self.stats: dict[str, dict[str, int]] = {}
+
+    def _stat(self, model: str, key: str) -> None:
+        with self._daily_lock:
+            d = self.stats.setdefault(model, {})
+            d[key] = d.get(key, 0) + 1
 
     # ---------------------------------------------------------------- discovery
     @property
@@ -265,6 +272,14 @@ class Router:
             budget.check()
         self.check_daily()
         t0 = time.perf_counter()
+        replayed = self._replay(task, messages) if self.s.mock else None
+        if replayed is not None:
+            data = extract_json(replayed) if schema else replayed
+            res = LLMResult(replayed, data if schema else None, role, task, self.model_for(role) + " (replay)",
+                            0, 0, 0.0, 0, mock=True)
+            if budget:
+                budget.add(res)
+            return res
         if self.s.mock:
             from vouch.llm import mock
 
@@ -280,7 +295,7 @@ class Router:
         model = self.model_for(role)
         msgs = list(messages)
         last_err: Exception | None = None
-        for repair in range(2):
+        for _repair in range(2):
             resp = self._call(model, role, msgs, schema, thinking, max_tokens, temperature, seed)
             text = resp.choices[0].message.content or ""
             usage = resp.usage
@@ -288,25 +303,61 @@ class Router:
             tout = getattr(usage, "completion_tokens", 0) or 0
             cost = self._price(role, tin, tout)
             self._charge_daily(cost)
+            self._stat(model, "calls")
+            if "<think>" in text:
+                self._stat(model, "think_tags_in_content")
             res = LLMResult(_THINK.sub("", text).strip(), None, role, task, model, tin, tout, cost,
                             int((time.perf_counter() - t0) * 1000))
             if budget:
                 budget.add(res)
             if schema is None:
+                self._record(task, messages, res)
                 return res
             try:
                 res.data = extract_json(text)
                 _check_schema(res.data, schema)
+                self._record(task, messages, res)
                 return res
             except ValueError as e:
                 last_err = e
                 log.warning("JSON repair round for %s/%s: %s", role, task, e)
+                self._stat(model, "json_repair_round")
                 msgs = msgs + [
                     {"role": "assistant", "content": text[:4000]},
                     {"role": "user", "content": f"That was not valid JSON for the schema ({e}). "
                      "Reply with ONLY the JSON object, no prose, no code fences."},
                 ]
         raise LLMError(f"model returned invalid JSON for {task}: {last_err}")
+
+    # ---------------------------------------------------------------- recorded fixtures
+    # VOUCH_RECORD_FILE=path.jsonl records every real call; with VOUCH_PROVIDER=mock the same file is
+    # replayed (exact prompt match), falling back to the deterministic mock. Lets CI run real-model fixtures.
+    @staticmethod
+    def _key(task: str, messages: list[dict]) -> str:
+        import hashlib
+
+        return hashlib.sha256((task + json.dumps(messages, sort_keys=True, ensure_ascii=False)).encode()).hexdigest()
+
+    def _record(self, task: str, messages: list[dict], res: LLMResult) -> None:
+        import os
+
+        path = os.environ.get("VOUCH_RECORD_FILE")
+        if not path:
+            return
+        with self._daily_lock, open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"key": self._key(task, messages), "task": task, "model": res.model,
+                                "text": res.text}, ensure_ascii=False) + "\n")
+
+    def _replay(self, task: str, messages: list[dict]) -> str | None:
+        import os
+
+        path = os.environ.get("VOUCH_RECORD_FILE")
+        if not path or not os.path.exists(path):
+            return None
+        if getattr(self, "_fixtures", None) is None:
+            with open(path, encoding="utf-8") as f:
+                self._fixtures = {r["key"]: r["text"] for r in map(json.loads, f) if r.get("key")}
+        return self._fixtures.get(self._key(task, messages))
 
     def _call(self, model, role, msgs, schema, thinking, max_tokens, temperature, seed):
         extra: dict[str, Any] = {}
@@ -340,6 +391,7 @@ class Router:
                 if "response_format" in kwargs and ("response_format" in msg or "schema" in msg or "json" in msg):
                     nxt = "json_object" if kwargs["response_format"]["type"] == "json_schema" else "prompt"
                     log.warning("%s rejected %s; falling back to %s", model, kwargs["response_format"]["type"], nxt)
+                    self._stat(model, f"rejected_{kwargs['response_format']['type']}")
                     self._json_mode[model] = nxt
                     if nxt == "json_object":
                         kwargs["response_format"] = {"type": "json_object"}
@@ -348,10 +400,12 @@ class Router:
                     continue
                 if extra and "chat_template" in msg:
                     log.warning("%s rejected chat_template_kwargs; dropping it", model)
+                    self._stat(model, "rejected_chat_template_kwargs")
                     extra = {}
                     continue
                 raise
             except (RateLimitError, APIConnectionError, APITimeoutError, InternalServerError) as e:
+                self._stat(model, f"retry_{type(e).__name__}")
                 if attempt >= self.s.vouch_llm_max_retries:
                     raise LLMError(f"{model}: {e}") from e
                 time.sleep(delay + random.random() * 0.5)
