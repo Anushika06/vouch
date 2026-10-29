@@ -41,12 +41,21 @@ class MemoryStore:
         self._fernet = Fernet(key_file.read_bytes())
 
     # ------------------------------------------------------------------ writes
-    def save(self, m: Memory, action: str, actor: str = "vouch", note: str = "") -> str:
+    def save(self, m: Memory, action: str, actor: str = "vouch", note: str = "", embed: bool = True) -> str:
         now = self.clock()
         m.updated_at = iso(now)
         sha = self.ledger.write(m, action, actor, note, ts=now.timestamp())
-        self._index(m)
+        self._index(m, embed=embed)
         return sha
+
+    def embed_missing(self, mems: list[Memory]) -> None:
+        """One embeddings request for a whole turn's new memories."""
+        todo = [m for m in mems if not self.db.row("SELECT id FROM embeddings WHERE id=?", (m.id,))]
+        if not todo or not self.router:
+            return
+        vecs = self.router.embed([m.content for m in todo], self.budget)
+        for m, v in zip(todo, vecs or [], strict=False):
+            self.db.insert("embeddings", {"id": m.id, "vec": json.dumps(v), "model": self.router.models.get("embed")})
 
     def _index(self, m: Memory, embed: bool = True) -> None:
         self.db.insert("memories", {

@@ -516,6 +516,11 @@ def lab_run(request: Request, response: Response, body: dict = Body(...)):
     from vouch.util import new_id
 
     sid = sid_of(request, response)
+    if get_settings().hosted:
+        runs = STATE.setdefault("lab_runs", {})
+        if runs.get(sid, 0) >= 15:
+            raise BudgetExceeded("demo limit reached for Attack Lab runs in this session — clone the repo to run your own")
+        runs[sid] = runs.get(sid, 0) + 1
     if body.get("custom"):
         inj = str(body["custom"])[:1500]
         tech = body.get("technique", "display_none")

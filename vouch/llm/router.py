@@ -398,6 +398,11 @@ class Router:
                     else:
                         kwargs.pop("response_format")
                     continue
+                if "seed" in kwargs and "seed" in msg:
+                    log.warning("%s rejected seed; dropping it", model)
+                    self._stat(model, "rejected_seed")
+                    kwargs.pop("seed")
+                    continue
                 if extra and "chat_template" in msg:
                     log.warning("%s rejected chat_template_kwargs; dropping it", model)
                     self._stat(model, "rejected_chat_template_kwargs")

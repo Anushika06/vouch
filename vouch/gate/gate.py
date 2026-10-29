@@ -176,10 +176,11 @@ class TrustGate:
                         decision.suggestion = "reject"
                 elif mem.status == Status.active:
                     mem.supersedes = top.id
-            self.store.save(mem, f"gate:{action.value}", "vouch", note="; ".join(g.notes))
+            self.store.save(mem, f"gate:{action.value}", "vouch", note="; ".join(g.notes), embed=False)
             if mem.supersedes:
                 self._supersede(mem.supersedes, mem.id)
             events.append(MemoryEvent(mem, action.value, g.notes))
+        self.store.embed_missing([e.memory for e in events if e.action != "duplicate"])
         return events
 
     def _duplicate(self, content: str, mtype: MemType, trust: Trust) -> Memory | None:
