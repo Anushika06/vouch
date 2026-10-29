@@ -7,6 +7,7 @@ import re
 import time
 from datetime import UTC, datetime
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 
 import tldextract
 
@@ -30,6 +31,19 @@ def sha256(text: str) -> str:
 
 def utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+LOCAL_TZ = ZoneInfo("Asia/Kolkata")  # the demo persona's timezone; calendar times are wall-clock local
+
+
+def local_iso(dt: datetime) -> str:
+    return dt.astimezone(LOCAL_TZ).isoformat(timespec="seconds")
+
+
+def local_day(dt: datetime, plus_days: int = 0) -> str:
+    from datetime import timedelta
+
+    return (dt.astimezone(LOCAL_TZ) + timedelta(days=plus_days)).date().isoformat()
 
 
 def iso(dt: datetime | None = None) -> str:

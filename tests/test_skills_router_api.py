@@ -121,5 +121,7 @@ def test_api_smoke(tmp_path, monkeypatch):
         ap = c.get("/api/approvals", headers={"x-vouch-session": sid}).json()
         assert ap["memories"] and json.dumps(ap["sources"]).count("acme-refunds") >= 1
         assert c.get("/demo-sites/dealz-hub.example/laptop-deals").status_code == 200
-        assert c.get("/demo-sites/../../pyproject.toml").status_code == 404
+        for probe in ("/demo-sites/../../pyproject.toml", "/demo-sites/..%2F..%2F..%2Fpyproject.toml",
+                      "/..%2Fpyproject.toml"):
+            assert "[project]" not in c.get(probe).text
     get_settings.cache_clear()

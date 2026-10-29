@@ -7,12 +7,11 @@ import concurrent.futures as cf
 import json
 import re
 from collections import defaultdict
-from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from vouch.models import RECALLABLE, Status, Trust
 from vouch.reader.reader import QuarantinedReader, RawDoc
-from vouch.util import EMAIL_RE, domain_of, iso, new_id, parse_iso, registrable_domain, truncate
+from vouch.util import EMAIL_RE, domain_of, iso, local_day, new_id, parse_iso, registrable_domain, truncate
 
 if TYPE_CHECKING:
     from vouch.workspace import Workspace
@@ -22,8 +21,8 @@ HEADLINE_SCHEMA = {"type": "object", "properties": {"headline": {"type": "string
 
 def build_briefing(ws: Workspace, news: bool = True) -> dict:
     now = ws.now()
-    day0 = iso(now)[:10]
-    day1 = iso(now + timedelta(days=1))[:10]
+    day0 = local_day(now)
+    day1 = local_day(now, 1)
     reader = QuarantinedReader(ws.router, ws.budget)
 
     events = [{"title": e["title"], "start": e["start"], "end": e["end"], "trust": e["trust"],
@@ -57,7 +56,7 @@ def build_briefing(ws: Workspace, news: bool = True) -> dict:
                 news_items.append({"topic": topic, "title": r.title, "url": r.url, "domain": domain_of(r.url),
                                    "snippet": truncate(r.content, 260), "trust": "RED", "via": r.source})
 
-    tasks = [t for t in ws.db.rows("SELECT * FROM tasks WHERE done=0 ORDER BY due") if t["due"][:10] <= iso(now + timedelta(days=7))[:10]]
+    tasks = [t for t in ws.db.rows("SELECT * FROM tasks WHERE done=0 ORDER BY due") if t["due"][:10] <= local_day(now, 7)]
     pending = len(ws.store.list(status=Status.pending_approval.value))
 
     # The headline is composed from GREEN facts only (your calendar, counts, trusted sender names).

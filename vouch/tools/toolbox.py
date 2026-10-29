@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from vouch.interpreter.values import Value, ValueStore
 from vouch.models import Span, Status, Trust
 from vouch.reader.reader import QuarantinedReader, RawDoc, ReaderOutput
-from vouch.util import content_words, domain_of, iso, new_id, registrable_domain
+from vouch.util import content_words, domain_of, iso, local_day, new_id, registrable_domain
 
 if TYPE_CHECKING:
     from vouch.workspace import Workspace
@@ -177,7 +177,7 @@ class Toolbox:
         now = self.ws.now()
         out = []
         for ev in rows:
-            if ev["start"][:10] < iso(now)[:10] or ev["start"][:10] > iso(now.replace(hour=23) + _days(int(days or 7)))[:10]:
+            if ev["start"][:10] < local_day(now) or ev["start"][:10] > local_day(now, int(days or 7)):
                 continue
             item = {"id": ev["id"], "start": ev["start"], "end": ev["end"], "attendees": ev["attendees"], "trust": ev["trust"]}
             if ev["trust"] == "GREEN" or self.raw:
@@ -307,10 +307,4 @@ def _list(v) -> list:
     if isinstance(v, str):
         return [x.strip() for x in v.replace(";", ",").split(",") if x.strip()]
     return list(v)
-
-
-def _days(n: int):
-    from datetime import timedelta
-
-    return timedelta(days=n)
 

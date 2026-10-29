@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ tokens
+   Trust colours are fixed product-wide: GREEN #22c55e, YELLOW #eab308, RED #ef4444.
+   The *-ink variants are the same hues tuned for legible text on each theme. Blue is the
+   only interface accent precisely because the trust language never uses it. */
+:root,
+:root[data-theme='dark'] {
+  --bg: 12 16 27;
+  --surface: 18 24 38;
+  --raised: 25 32 50;
+  --sunken: 9 12 21;
+  --line: 36 44 64;
+  --line-strong: 54 64 90;
+  --fg: 228 232 242;
+  --muted: 142 151 173;
+  --faint: 98 108 132;
+  --accent: 143 168 255;
+  --accent-fg: 11 17 38;
+  --shadow: 0 0 0;
+
+  --trust-green: 34 197 94;
+  --trust-yellow: 234 179 8;
+  --trust-red: 239 68 68;
+  --green-ink: 74 222 128;
+  --yellow-ink: 250 204 21;
+  --red-ink: 248 113 113;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: 243 245 249;
+  --surface: 255 255 255;
+  --raised: 249 250 252;
+  --sunken: 234 237 243;
+  --line: 222 226 235;
+  --line-strong: 196 203 218;
+  --fg: 17 23 37;
+  --muted: 84 94 115;
+  --faint: 136 145 163;
+  --accent: 50 82 226;
+  --accent-fg: 255 255 255;
+  --shadow: 30 40 70;
+
+  --green-ink: 21 128 61;
+  --yellow-ink: 146 90 4;
+  --red-ink: 190 30 30;
+  color-scheme: light;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-bg text-fg font-sans;
+    font-size: 14px;
+    line-height: 1.5;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+  ::selection {
+    background: rgb(var(--accent) / 0.3);
+  }
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--line-strong)) transparent;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-medium whitespace-nowrap
+      border border-line bg-surface text-fg transition-colors select-none
+      hover:bg-raised hover:border-line-strong disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-sm {
+    @apply h-7 px-2.5 text-xs rounded-md;
+  }
+  .btn-lg {
+    @apply h-10 px-4 text-sm;
+  }
+  .btn-primary {
+    @apply bg-accent text-accent-fg border-transparent hover:bg-accent hover:brightness-110 hover:border-transparent;
+  }
+  .btn-ghost {
+    @apply bg-transparent border-transparent text-muted hover:text-fg hover:bg-raised hover:border-transparent;
+  }
+  .btn-danger {
+    @apply bg-transparent text-red-ink border-red/40 hover:bg-red/10 hover:border-red/60;
+  }
+  .btn-safe {
+    @apply bg-transparent text-green-ink border-green/40 hover:bg-green/10 hover:border-green/60;
+  }
+  .card {
+    @apply bg-surface border border-line rounded-xl;
+  }
+  .input {
+    @apply h-9 w-full rounded-lg border border-line bg-sunken px-3 text-[13px] text-fg placeholder:text-faint
+      outline-none transition-colors focus:border-accent/70 focus:ring-2 focus:ring-accent/20;
+  }
+  .textarea {
+    @apply w-full rounded-lg border border-line bg-sunken px-3 py-2 text-[13px] text-fg placeholder:text-faint
+      outline-none transition-colors focus:border-accent/70 focus:ring-2 focus:ring-accent/20 resize-y;
+  }
+  .select {
+    @apply h-9 rounded-lg border border-line bg-sunken pl-3 pr-8 text-[13px] text-fg outline-none
+      focus:border-accent/70 focus:ring-2 focus:ring-accent/20 appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238e97ad' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  .label {
+    @apply text-xs font-medium text-muted;
+  }
+  .section-title {
+    @apply text-[13px] font-semibold text-fg tracking-[-0.005em];
+  }
+  .mono {
+    @apply font-mono text-[12px] tracking-[-0.01em];
+  }
+  .skeleton {
+    @apply rounded-md;
+    background: linear-gradient(90deg, rgb(var(--raised)) 0px, rgb(var(--line) / 0.7) 120px, rgb(var(--raised)) 240px);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
+  }
+  .hazard {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgb(var(--trust-red) / 0.14) 0 10px,
+      transparent 10px 20px
+    );
+  }
+  .hairline-grid {
+    background-image: linear-gradient(rgb(var(--line) / 0.45) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--line) / 0.45) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+}
+
+@layer utilities {
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+/* Inline provenance: a trust-coloured underline under every span that came from somewhere. */
+.seg {
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  text-decoration-skip-ink: none;
+  border-radius: 3px;
+  cursor: help;
+  transition: background-color 0.15s;
+}
+.seg-GREEN { text-decoration-color: rgb(var(--trust-green) / 0.85); }
+.seg-YELLOW { text-decoration-color: rgb(var(--trust-yellow) / 0.9); }
+.seg-RED { text-decoration-color: rgb(var(--trust-red) / 0.9); text-decoration-style: wavy; text-decoration-thickness: 1.5px; }
+.seg-GREEN:hover { background: rgb(var(--trust-green) / 0.1); }
+.seg-YELLOW:hover { background: rgb(var(--trust-yellow) / 0.12); }
+.seg-RED:hover { background: rgb(var(--trust-red) / 0.1); }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

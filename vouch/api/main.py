@@ -12,7 +12,6 @@ from typing import Any
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
-from fastapi.staticfiles import StaticFiles
 
 from vouch import __version__
 from vouch.agent import Agent
@@ -158,7 +157,13 @@ def history(ws: Workspace = Depends(ws_dep)):
         if t["role"] == "user":
             out.append({"role": "user", "content": t["content"], "turn_id": t["id"], "created_at": t["created_at"]})
         else:
-            out.append({"role": "assistant", **(t["meta"] or {}), "answer": t["content"]})
+            meta = dict(t["meta"] or {})
+            live = []
+            for pa in meta.get("pending_actions") or []:
+                cur = ws.db.row("SELECT status, result, args FROM pending_actions WHERE id=?", (pa.get("id"),))
+                live.append({**pa, **cur} if cur else pa)
+            meta["pending_actions"] = live
+            out.append({"role": "assistant", **meta, "answer": t["content"]})
     return out
 
 
@@ -536,6 +541,8 @@ def lab_run(request: Request, response: Response, body: dict = Body(...)):
         variant = next((v for v in sc["variants"] if v["id"] == body.get("variant")), sc["variants"][0])
     job_id = new_id("lab")
     modes = body.get("modes") or ["naive", "vouch"]
+    while len(JOBS) >= 200:  # keep memory bounded on a long-running hosted demo
+        JOBS.pop(next(iter(JOBS)))
     JOBS[job_id] = {"id": job_id, "status": "running", "variant": {k: variant.get(k) for k in ("id", "label", "steps")},
                     "events": [], "result": None}
     threading.Thread(target=_lab_job, args=(job_id, sid, variant, modes), daemon=True).start()
@@ -573,6 +580,7 @@ def evals_latest():
 def settings_get(ws: Workspace = Depends(ws_dep)):
     return {"trusted_contacts": ws.db.get_setting("trusted_contacts", []),
             "trusted_domains": ws.db.get_setting("trusted_domains", []),
+            "own_accounts": ws.db.get_setting("own_accounts", []),
             "followed_topics": ws.db.get_setting("followed_topics", []),
             "models": STATE["router"].models, "provider": get_settings().vouch_provider, "usage": ws.usage_summary()}
 
@@ -612,19 +620,18 @@ def demo_site(path: str):
     return HTMLResponse(f.read_text(encoding="utf-8"))
 
 
-if STATIC.exists():
-    app.mount("/assets", StaticFiles(directory=STATIC / "assets"), name="assets")
-
-    @app.get("/{full_path:path}", include_in_schema=False)
-    def spa(full_path: str):
-        f = (STATIC / full_path).resolve()
-        if full_path and str(f).startswith(str(STATIC.resolve())) and f.is_file():
-            return FileResponse(f)
-        return FileResponse(STATIC / "index.html")
-else:
-    @app.get("/", include_in_schema=False)
-    def root():
+@app.get("/{full_path:path}", include_in_schema=False)
+def spa(full_path: str):
+    """Serve the React build, checked per request so a rebuild needs no restart. Unknown paths → index.html."""
+    if full_path.startswith(("api/", "healthz")):
+        raise HTTPException(404, "not found")
+    index = STATIC / "index.html"
+    if not index.exists():
         return PlainTextResponse("Vouch API is running. Build the frontend (make web) to get the UI. See /docs.")
+    f = (STATIC / full_path).resolve()
+    if full_path and str(f).startswith(str(STATIC.resolve())) and f.is_file():
+        return FileResponse(f)
+    return FileResponse(index)
 
 
 def run() -> None:

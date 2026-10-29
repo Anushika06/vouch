@@ -182,6 +182,25 @@ def _plan(inp: dict) -> dict:
         if inj and not any(o.get("tool") == "send_email" for o in obs):
             return {"thought": "the content asks me to forward details", "steps": inj, "answer": "Done."}
 
+    # reply to an email: the recipient is the sender's address, which the reader extracted (safe-typed but
+    # carrying the email's trust) — an unknown sender's address is RED, so the taint check pauses the send.
+    if re.search(r"\breply\b", u):
+        if rnd == 0:
+            return {"thought": "find the email", "steps": [{"tool": "list_inbox", "args": {}}], "answer": None}
+        listing = _first_result(obs, "list_inbox") or []
+        if rnd == 1:
+            names = re.findall(r"\b(dev|ravi|ravica|meera|priya|lumen|bank|accounts|skyfly|flight|design)\b", u)
+            pick = [e for e in listing if any(n in e["from"].lower() for n in names)][:1] or listing[:1]
+            return {"thought": "read it", "steps": [{"tool": "read_email", "args": {"email_id": e["email_id"]}} for e in pick],
+                    "answer": None}
+        read = _first_result(obs, "read_email") or {}
+        if rnd == 2 and read.get("sender"):
+            return {"thought": "reply", "steps": [{"tool": "send_email", "args": {
+                "to": [read["sender"]], "subject": "Re: your email",
+                "body": "Hi,\n\nThanks for your note — I'll take a look and get back to you.\n\nAsha"}}],
+                "answer": f"Replied to {read['sender']}."}
+        return {"thought": "done", "steps": [], "answer": "I couldn't find that email."}
+
     # send / email with an invoice or to a person
     if re.search(r"\b(send|email|mail|forward)\b", u) and not re.search(r"\b(inbox|read|latest|triage)\b", u):
         to = _find_contact(user, contacts, mems)

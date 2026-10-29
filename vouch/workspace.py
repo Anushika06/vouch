@@ -17,7 +17,7 @@ from vouch.llm.router import Budget, LLMResult, Router
 from vouch.memory.store import MemoryStore
 from vouch.models import GateAction, GateDecision, Memory, MemType, Provenance, Status, Trust
 from vouch.reader.reader import QuarantinedReader
-from vouch.util import iso, new_id, utcnow
+from vouch.util import LOCAL_TZ, iso, local_iso, new_id, utcnow
 from vouch.web.demo import DemoWeb
 from vouch.web.tavily import TavilyCache, Web, WebMeter
 
@@ -154,17 +154,17 @@ class Workspace:
                                  "to_addrs": [data["persona"]["email"]], "cc": [], "subject": e["subject"], "body": body,
                                  "html": None, "date": iso(now - timedelta(days=e["days_ago"], hours=2)), "unread": 1,
                                  "labels": [], "attack": e.get("attack")})
-        base = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        base = now.astimezone(LOCAL_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
         for ev in data["events"]:
             day = base + timedelta(days=ev["day"])
             h1, m1 = map(int, ev["start"].split(":"))
             h2, m2 = map(int, ev["end"].split(":"))
             db.insert("events", {"id": new_id("evt"), "title": ev["title"],
-                                 "start": iso(day.replace(hour=h1, minute=m1)), "end": iso(day.replace(hour=h2, minute=m2)),
+                                 "start": local_iso(day.replace(hour=h1, minute=m1)), "end": local_iso(day.replace(hour=h2, minute=m2)),
                                  "attendees": ev["attendees"], "location": "", "notes": "", "source": "user",
                                  "trust": "GREEN", "created_at": iso(now)})
         for t in data["tasks"]:
-            db.insert("tasks", {"id": new_id("tsk"), "title": t["title"], "due": iso(base + timedelta(days=t["due_day"])),
+            db.insert("tasks", {"id": new_id("tsk"), "title": t["title"], "due": local_iso(base + timedelta(days=t["due_day"])),
                                 "done": 0, "source": "user", "trust": "GREEN", "created_at": iso(now)})
         for f in data["files"]:
             db.insert("files", {**f, "content": f["description"]})

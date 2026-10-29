@@ -14,7 +14,8 @@ email, or a malicious skill can never quietly rewrite what it believes or what i
 > all served by **Nebius Token Factory** · **Tavily** (search, extract, research, crawl/map — the only way Vouch
 > reads the web) · **NVIDIA OpenShell** policy generation for skills · **MCP** server for Hermes Agent / OpenClaw.
 
-<p align="center"><img src="docs/img/hero.png" alt="Vouch Attack Lab: naive agent poisoned vs Vouch caught" width="900"></p>
+<p align="center"><img src="docs/img/hero.png" alt="Vouch Attack Lab: naive agent poisoned vs Vouch caught" width="900"><br>
+<sub>Attack Lab, scenario A1-1 (captured with the offline mock models; the hosted demo runs Nemotron on Token Factory).</sub></p>
 
 Track: **Personal AI** · Bonus: **Best Use of Tavily** · New project built during the submission period.
 
