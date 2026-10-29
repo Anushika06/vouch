@@ -13,3 +13,6 @@ video/out/
 evals/results/runs/
 *.egg-info/
 .DS_Store
+video/node_modules/
+video/clips/
+.playwright-mcp/

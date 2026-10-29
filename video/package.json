@@ -1,0 +1,11 @@
+{
+  "name": "vouch-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "record": "node record.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.48.2"
+  }
+}

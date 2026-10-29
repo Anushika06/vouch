@@ -52,4 +52,4 @@ deploy-hf:          ## Push to a Hugging Face Space: make deploy-hf SPACE=user/v
 	bash scripts/deploy_hf.sh $(SPACE)
 
 video:              ## Record demo clips with Playwright against URL (default local)
-	cd video && npm ci && npx playwright install chromium && BASE_URL=$(or $(URL),http://localhost:$(PORT)) node record.mjs
+	cd video && npm install && npx playwright install chromium && BASE_URL=$(or $(URL),http://localhost:$(PORT)) node record.mjs
